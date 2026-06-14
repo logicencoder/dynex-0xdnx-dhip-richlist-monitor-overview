@@ -1,62 +1,34 @@
-# 0xDNX DHIP Richlist Monitor — overview
+# 0xDNX DHIP Richlist Monitor
 
-Public description of the **private Python monitor** that indexes Wrapped Dynex (0xDNX) in **DHIP v2** on Ethereum and feeds the LogicEncoder richlist. Private code: [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor).
+Private Python indexer for **Wrapped Dynex (0xDNX)** in **DHIP v2** on Ethereum. Scans chain activity, maintains holder balances and concentration metrics, and pushes payloads to the WordPress richlist — so the public site does not scrape Etherscan on every page view.
 
-**Live site (WordPress):** https://logicencoder.com/0xdnx-dhip-v2-richlist/  
-**Plugin overview:** [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview)
+Private source: [logicencoder/dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor).
 
-## What it is
+**Public richlist (visitors):** [logicencoder.com/0xdnx-dhip-v2-richlist/](https://logicencoder.com/0xdnx-dhip-v2-richlist/)  
+**Plugin overview (pair, later):** [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview)
 
-**What:** Long-running monitor on operator infrastructure that tracks holder balances, concentration metrics, and recent deposits/withdrawals for 0xDNX in DHIP v2, then POSTs payloads to the WordPress plugin.  
-**Why:** On-chain truth must be computed once near the node/RPC; the public site should not scrape Etherscan per page view.  
-**Who:** Token holders and researchers see rankings on logicencoder.com; operator runs the monitor on SOL.
+## The problem it solves
 
-## Full stack
+Holder distribution, whale concentration, and recent deposit/withdraw activity need a **continuous indexer** near Ethereum RPC — not per-request explorer queries. This monitor builds the dataset the public richlist table and SEO snapshots consume.
 
-```
-Ethereum (0xDNX in DHIP v2)
-        │
-        ▼
-Python monitor (private — this overview)
-        │  POST richlist + snapshot payloads
-        ▼
-WordPress plugin (private PHP)
-        │
-        ├── Visitors — live AJAX table
-        └── Crawlers — static snapshot HTML + JSON-LD
-```
+## Metrics produced
 
-| Repo | Role |
-|------|------|
-| **This overview** | Monitor capabilities (no secrets) |
-| [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor) | Private indexer |
-| [dynex-0xdnx-dhip-richlist-plugin](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin) | Private WP plugin |
-| [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview) | Public plugin UX/docs |
+- Total unique holders and supply locked in DHIP v2
+- Top-10 and top-50 concentration percentages
+- Whale counts and 24h deposit/withdraw activity
+- Ranked holder table with exact % of supply
+- Live transaction feed with deposit/withdraw classification and Etherscan links
 
-## Metrics the monitor drives
+## Runtime behavior
 
-**What:** Total holders, supply in pool, top-10/top-50 concentration, whale counts, 24h deposit/withdraw activity, ranked holder table with percentages.  
-**Why:** Investors and the community need transparency on distribution and centralization risk.  
-**Who:** Visitors on the public richlist page; SEO/AI crawlers consume plugin-generated snapshots.
+Batch block processing with SQLite persistence, balance updates from classified transactions, richlist JSON generation, and periodic push to the WordPress plugin endpoint. Lookback catch-up after downtime, then tail new blocks.
 
-## Live transaction feed
+## Stack
 
-**What:** Classified deposit/withdraw events with amounts, timestamps, and explorer links.  
-**Why:** Rankings alone hide flow; activity shows whether whales are entering or exiting the program.  
-**Who:** Researchers monitoring program health.
+Python 3, Web3 HTTP provider, SQLite (`0xdnxdhip_holders.db`), JSON richlist artifacts. Full schema and CLI flags in the private `ARCHITECTURE.md`.
 
-## Production
+See [REPOS.md](REPOS.md) for repository links.
 
-**What:** Runs on SOL under `/home/sol/lojzo/0xdnxdhip_richlist_monitor/` (see private `ARCHITECTURE.md`).  
-**Why:** Co-locate with other LogicEncoder chain tools and stable outbound POST to Hostinger.  
-**Who:** Operator maintains RPC keys and monitor uptime.
+---
 
-## Related documentation
-
-Guide: https://logicencoder.com/wrapped-dynex-richlist-0xdnx-dvhip-v2/
-
-See [REPOS.md](REPOS.md).
-
-## Licensing
-
-© LogicEncoder.
+**Made by [Logic Encoder](https://logicencoder.com)** · [GitHub](https://github.com/logicencoder) · [Contact](https://logicencoder.com/contact/)

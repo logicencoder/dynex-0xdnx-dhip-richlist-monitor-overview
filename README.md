@@ -10,7 +10,7 @@ Pool share shifts whenever large wallets deposit or exit — a static export is 
 |-------|--------------|
 | Worker | Python 3, `web3.py`, `requests`, `orjson`, `sqlite3`, `configparser`, `threading` / `queue` |
 | Chain access | Ethereum JSON-RPC (`eth_getLogs`, block heads); WebSocket subscription when available, HTTP poll fallback |
-| Persistence | SQLite `0xdnxdhip_holders.db`; JSON export `dhip_richlist_data.json`; optional `dhip_transaction.log` |
+| Persistence | SQLite local database; JSON export `dhip_richlist_data.json`; optional `dhip_transaction.log` |
 | WordPress handoff | Authenticated REST richlist push to the private plugin ingest endpoint |
 | Configuration | `0xdnxdhip_config.ini`, `.env` fallbacks, extensive CLI flags for headless USM runs |
 | Operations | Universal Service Manager long-running service on operator Linux host |
@@ -41,18 +41,7 @@ After each rebuild the worker recalculates **rank**, **balance**, and **percenta
 
 ## Local analytics and audit trail
 
-SQLite stores more than the current leaderboard snapshot:
-
-| Store | Role |
-|-------|------|
-| `holders` | Latest rank, balance, and percentage per address |
-| `balance_history` / `rank_history` / `percentage_history` | Time series of position changes |
-| `transactions` | Classified deposit and withdrawal rows with block metadata |
-| `stats` | Aggregate totals after each update |
-| `daily_snapshots` | Once-per-day holder rows for long-range charts |
-| `percentage_distribution` | Percentile bucket counts (10 / 25 / 50 / 75 / 90 / 100) |
-| `historical_totals` | Top-10, top-50, and top-100 concentration over time |
-| `wordpress_send_log` | Per-site push success, response text, and payload size |
+SQLite keeps the current leaderboard plus historical series — balance, rank, and percentage changes over time, classified deposits and withdrawals, daily snapshots for long-range charts, percentile bucket counts, and top-holder concentration trends. A **push audit log** records each WordPress handoff with HTTP outcome and payload size for operator review.
 
 A parallel **`dhip_richlist_data.json`** file mirrors the ranked list for offline inspection, backups, and debugging without opening the database.
 
@@ -98,7 +87,7 @@ Optional **Etherscan** reconciliation helps when the local node is missing ancie
 
 ## Reliability notes
 
-WordPress pushes run on a **background thread** so a slow HTTP response does not stall block processing. Failed sends are logged in `wordpress_send_log` for operator review.
+WordPress pushes run on a **background thread** so a slow HTTP response does not stall block processing. Failed sends are logged in the push audit trail for operator review.
 
 API keys and RPC endpoints stay in local configuration files on the operator host — never in the public overview or GitHub tree.
 

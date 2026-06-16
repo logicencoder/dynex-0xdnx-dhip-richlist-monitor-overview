@@ -99,4 +99,57 @@ See [REPOS.md](REPOS.md).
 
 ---
 
+## Feature examples (two per capability)
+
+#### Lookback catch-up at startup
+1. You set a short lookback window on USM start and confirm the worker replays recent DHIP transfers before live tail begins.
+2. You restart after downtime and confirm the resume pointer continues from the last processed block instead of scanning from genesis.
+
+#### Live block tail
+1. You run with WebSocket heads enabled and watch new blocks enqueue and process without manual refresh.
+2. WebSocket drops and HTTP poll fallback keeps the richlist advancing until the subscription recovers.
+
+#### Deposit and withdrawal classification
+1. A large wallet sends 0xDNX into DHIP — you see a DEPOSIT row, updated rank, and percentage in the next rebuild.
+2. A whale withdraws — balance drops, rank shuffles, and zero-balance addresses drop from the in-memory map.
+
+#### SQLite history and audit
+1. You enable the database and review balance_history rows after a volatile hour — each classified move links to block height and tx hash.
+2. You inspect the WordPress push audit table after a failed POST and retry from wp-admin once the API key is fixed.
+
+#### WordPress multi-site push
+1. You configure two `-w`/`-k` site triplets and confirm each rebuild POSTs ranked JSON to every target in sequence.
+2. You enable auto-send and watch the public richlist page update within seconds of an on-chain deposit — without PHP calling Ethereum RPC.
+
+#### JSON export mirror
+1. You open `dhip_richlist_data.json` on the operator host and compare holder count with the live WordPress table during debugging.
+2. You enable separate timestamped exports and keep a folder of JSON/CSV snapshots for monthly compliance review.
+
+#### Rank and percentage change tracking
+1. A mid-tier holder jumps five ranks after a competitor withdraws — rank_history records the movement for later charts.
+2. Quiet block produces no percentage_history noise because unchanged shares skip insert.
+
+#### Etherscan bootstrap (cold start)
+1. Local node lacks ancient logs and you run with Etherscan bootstrap once to seed holder balances before live tail.
+2. You reconcile bootstrap totals against on-chain supply and confirm drift is within your tolerance before enabling auto-send.
+
+#### Headless USM operation
+1. You launch with database, auto-send, and lookback flags only — no TTY wizard — and confirm USM logs show steady block progress.
+2. You bump lookback after a long outage and let Phase 1 catch-up finish before trusting live percentages on the public page.
+
+#### Transaction log file
+1. You enable human-readable logging and tail DEPOSIT/WITHDRAWAL lines during a known whale move for a support ticket.
+2. You correlate a log line with Etherscan while the SQLite ledger provides the structured query path for the plugin feed.
+
+#### Daily snapshots and concentration
+1. Midnight UTC passes and daily_snapshots capture one row per holder for long-range charts in the plugin.
+2. You compare top-10 concentration between two saves the same day and read the updated historical_totals row for that date.
+
+#### Interactive wizard (dev)
+1. On a laptop TTY you walk the wizard — logging, database path, separate files, lookback — before your first push to staging WordPress.
+2. You disable auto-send in the wizard run, validate JSON locally, then enable `-a` for production once ranks look sane.
+
+
+---
+
 **Made by [Logic Encoder](https://logicencoder.com)** · [GitHub](https://github.com/logicencoder) · [Contact](https://logicencoder.com/contact/)

@@ -53,7 +53,7 @@ When **auto-send** is enabled, each successful richlist rebuild enqueues a backg
 
 Each payload carries the timestamped holder array (address, balance, percentage, rank, formatted strings), aggregate totals, holder count, block number, and a slice of recent classified transactions pulled from SQLite.
 
-The monitor sends **richlist JSON only**. Static HTML snapshots, Schema.org JSON-LD, and bot user-agent routing are generated **inside the WordPress plugin** after ingest — not by this worker.
+The monitor sends **richlist JSON only**. Static HTML snapshots, Schema.org JSON-LD, and bot user-agent routing are generated **inside the WordPress plugin** after ingest.
 
 PHP never opens an Ethereum RPC connection; all on-chain truth originates here.
 

@@ -1,55 +1,110 @@
 # 0xDNX DHIP Richlist — monitor service
 
-Private Python indexer for **Wrapped Dynex (0xDNX)** in **DHIP v2** on Ethereum. Scans `Transfer` events on the DHIP contract, maintains holder balances and concentration history in SQLite, builds richlist JSON, and POSTs payloads to the WordPress plugin — so the public page never queries Etherscan per view.
+Long-running **Python indexer** for **Wrapped Dynex (0xDNX)** held in the **DHIP v2** pool on Ethereum. It watches DHIP `Transfer` events through a local Geth node, rebuilds holder balances and rankings, and pushes JSON to WordPress so [logicencoder.com/0xdnx-dhip-v2-richlist/](https://logicencoder.com/0xdnx-dhip-v2-richlist/) never scrapes Etherscan on every page view.
 
-**Private code:** [logicencoder/dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor)
+Pool share shifts whenever large wallets deposit or exit — a static export is stale within hours. This worker tails new blocks after an optional lookback catch-up, persists history in SQLite, and hands ranked data to the plugin that powers the public table, stats band, and live refresh loop.
 
-**Public product (portfolio):** [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview) — [logicencoder.com/0xdnx-dhip-v2-richlist/](https://logicencoder.com/0xdnx-dhip-v2-richlist/)
+## Tech stack
 
-The plugin renders the ranked table, stats band, recent transactions, and bot snapshots. This monitor is the on-chain indexer.
+| Layer | Technologies |
+|-------|--------------|
+| Worker | Python 3, `web3.py`, `requests`, `orjson`, `sqlite3`, `configparser`, `threading` / `queue` |
+| Chain access | Ethereum JSON-RPC (`eth_getLogs`, block heads); WebSocket subscription when available, HTTP poll fallback |
+| Persistence | SQLite `0xdnxdhip_holders.db`; JSON export `dhip_richlist_data.json`; optional `dhip_transaction.log` |
+| WordPress handoff | Authenticated REST richlist push to the private plugin ingest endpoint |
+| Configuration | `0xdnxdhip_config.ini`, `.env` fallbacks, extensive CLI flags for headless USM runs |
+| Operations | Universal Service Manager long-running service on operator Linux host |
+| Downstream UI | [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview) — shortcode, AJAX polls, crawler snapshots |
 
-## Contracts tracked
+## Contracts indexed
 
-| Token / pool | Address (mainnet) |
-|--------------|-------------------|
+| Name | Mainnet address |
+|------|-----------------|
 | DHIP v2 pool | `0xD76f48605DB0eBc75Ddc569340eaca42B7f65105` |
 | Wrapped DNX (0xDNX) | `0x9928a8600d14ac22c0be1e8d58909834d7ceaf13` |
 
-Decimals: **9**. RPC via configurable HTTP Web3 provider (and optional WebSocket for live heads).
+Token amounts use **nine decimal places** end-to-end in the monitor math and formatted payloads.
 
-## Execution modes
+## Block scanning and classification
 
-**Lookback catch-up** — scans a configurable block range in chunks (default chunk size **2000**) using `eth_getLogs` on the DHIP contract, rebuilds holder balances, writes SQLite and JSON, optionally pushes to WordPress.
+Two phases keep the richlist current without re-scanning the full chain on every restart.
 
-**Live tail** — subscribes to new block heads (WebSocket or HTTP poll), queues each height through `process_block_number`, classifies mint/burn/transfer, updates ranks and percentages.
+**Lookback catch-up** runs at startup when `--lookback-blocks` is set (production uses a short window). The worker walks recent heights in chunks (default **2000** blocks per `eth_getLogs` query), replays DHIP transfers, and rebuilds holder balances before live tail begins.
 
-## Classification and metrics
+**Live tail** subscribes to new block heads when a WebSocket endpoint is reachable; otherwise it polls HTTP. Each queued height flows through `process_block_number`, which classifies activity relative to the pool contract:
 
-Each transfer updates holder balances and aggregate stats:
+- **Deposit** — 0xDNX moving into DHIP (mint into the pool from the holder’s perspective on the public page)
+- **Withdrawal** — 0xDNX leaving DHIP
+- Internal transfers between pool participants update balances and ranks without double-counting supply
 
-- Total unique holders and supply in the pool
-- Top-10 / top-50 / top-100 concentration over time
-- Percentile distribution buckets and daily snapshots
-- 24h deposit and withdraw counts for the activity band
-- Ranked table with exact **% of total supply** per address
+After each rebuild the worker recalculates **rank**, **balance**, and **percentage of total pool supply** for every holder address.
 
-Recent transactions feed classifies **deposit vs withdraw** relative to the pool for the plugin’s live AJAX UI.
+## Local analytics and audit trail
 
-## Persistence
+SQLite stores more than the current leaderboard snapshot:
 
-SQLite **`0xdnxdhip_holders.db`** tables include `holders`, `balance_history`, `transactions`, `stats`, `percentage_history`, `rank_history`, `daily_snapshots`, `percentage_distribution`, `historical_totals`, and `wordpress_send_log` for push audit.
+| Store | Role |
+|-------|------|
+| `holders` | Latest rank, balance, and percentage per address |
+| `balance_history` / `rank_history` / `percentage_history` | Time series of position changes |
+| `transactions` | Classified deposit and withdrawal rows with block metadata |
+| `stats` | Aggregate totals after each update |
+| `daily_snapshots` | Once-per-day holder rows for long-range charts |
+| `percentage_distribution` | Percentile bucket counts (10 / 25 / 50 / 75 / 90 / 100) |
+| `historical_totals` | Top-10, top-50, and top-100 concentration over time |
+| `wordpress_send_log` | Per-site push success, response text, and payload size |
 
-JSON artifact **`dhip_richlist_data.json`** mirrors the ranked list for offline inspection and plugin ingest.
+A parallel **`dhip_richlist_data.json`** file mirrors the ranked list for offline inspection, backups, and debugging without opening the database.
 
-## WordPress integration
+**Resume pointer** `last_processed_block.txt` lets the service continue from the last processed height after restart instead of replaying from genesis.
 
-Authenticated **`POST /wp-json/0xdnxdhip/v1/richlist`** (and related routes) from the monitor after each successful rebuild. Plugin stores rows, serves **`[0xdnxdhip_richlist]`** shortcode, generates static snapshot HTML for crawlers, and exposes public **`GET /stats`** for AJAX refresh.
+## WordPress multi-site push
 
-PHP never calls Ethereum — all chain truth originates here.
+When **auto-send** is enabled, each successful richlist rebuild enqueues a background POST to every configured WordPress target. Configuration supports multiple sites via repeated `[WordPress]` / `[WordPress2]` sections in INI, or repeated `-w` / `-k` / `-n` CLI triplets.
 
-## Key file
+Each payload carries the timestamped holder array (address, balance, percentage, rank, formatted strings), aggregate totals, holder count, block number, and a slice of recent classified transactions pulled from SQLite.
 
-**`0xdnxdhip_richlist_monitor.py`** — CLI flags for lookback depth, chunk size, push targets, and logging. Full schema and env vars in private `ARCHITECTURE.md`.
+The monitor sends **richlist JSON only**. Static HTML snapshots, Schema.org JSON-LD, and bot user-agent routing are generated **inside the WordPress plugin** after ingest — not by this worker.
+
+PHP never opens an Ethereum RPC connection; all on-chain truth originates here.
+
+## What the plugin adds (public UI)
+
+Cross-link for visitor-facing behaviour — documented fully in the plugin overview, summarised here so readers know the split of responsibility:
+
+- **From monitor data:** holder count, total 0xDNX in pool, ranked table, recent deposit/withdraw feed, concentration trends in historical tables.
+- **Computed in WordPress:** whale count (≥1% share), small-holder band (<0.1%), 24h activity count, live AJAX refresh, load-more pagination, and SEO snapshot files for crawlers.
+
+## Headless operation and CLI
+
+Production runs non-interactively under Universal Service Manager with flags such as database enable, decimal precision, initial WordPress push, auto-send, lookback depth, and verbosity.
+
+When started without flags on a TTY, an interactive wizard walks through logging, database filename, separate timestamped export files, decimal precision, Etherscan bootstrap toggle, and lookback depth.
+
+Notable CLI knobs operators use in practice:
+
+| Flag | Purpose |
+|------|---------|
+| `--lookback-blocks` | Blocks to scan on startup before live tail |
+| `--db` / `--dbfile` | Enable SQLite and choose database path |
+| `--send-initial` | Push current richlist to WordPress on startup (background thread) |
+| `-a` / `--autosend` | POST after every rebuild |
+| `-w` / `-k` / `-n` (repeatable) | WordPress URL, API key, and label per site |
+| `--use-etherscan` | Optional Etherscan-assisted bootstrap when local node history is incomplete |
+| `--separate-files` | Write timestamped JSON/CSV copies per update |
+| `--log` | Append human-readable audit lines to `dhip_transaction.log` |
+
+Optional **Etherscan** reconciliation helps when the local node is missing ancient logs; day-to-day production relies on the co-located Geth instance for low-latency `eth_getLogs`.
+
+## Reliability notes
+
+WordPress pushes run on a **background thread** so a slow HTTP response does not stall block processing. Failed sends are logged in `wordpress_send_log` for operator review.
+
+API keys and RPC endpoints stay in local configuration files on the operator host — never in the public overview or GitHub tree.
+
+Private code: [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor) · public UI [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview)
+
+Guide: [Wrapped Dynex richlist explained](https://logicencoder.com/wrapped-dynex-richlist-0xdnx-dvhip-v2/)
 
 See [REPOS.md](REPOS.md).
 

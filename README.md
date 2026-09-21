@@ -57,7 +57,7 @@ The monitor sends **richlist JSON only**. Static HTML snapshots, Schema.org JSON
 
 PHP never opens an Ethereum RPC connection; all on-chain truth originates here.
 
-## What the plugin adds (public UI)
+## WordPress plugin UI
 
 Cross-link for visitor-facing behaviour — documented fully in the plugin overview, summarised here so readers know the split of responsibility:
 
@@ -89,7 +89,7 @@ Optional **Etherscan** reconciliation helps when the local node is missing ancie
 
 WordPress pushes run on a **background thread** so a slow HTTP response does not stall block processing. Failed sends are logged in the push audit trail for operator review.
 
-API keys and RPC endpoints stay in local configuration files on the operator host — never in the public overview or GitHub tree.
+API keys and RPC endpoints stay in local configuration files on the operator host.
 
 Private code: [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor) · public UI [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview)
 
@@ -99,7 +99,7 @@ See [REPOS.md](REPOS.md).
 
 ---
 
-## Feature examples (two per capability)
+## Operator workflows
 
 #### Lookback catch-up at startup
 1. You set a short lookback window on USM start and confirm the worker replays recent DHIP transfers before live tail begins.

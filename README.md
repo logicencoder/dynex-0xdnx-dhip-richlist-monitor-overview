@@ -1,5 +1,7 @@
 # 0xDNX DHIP Richlist — monitor service
 
+![Public richlist page on logicencoder.com — holder KPIs and transaction feed fed by this monitor](monitor.png)
+
 Long-running **Python indexer** for **Wrapped Dynex (0xDNX)** held in the **DHIP v2** pool on Ethereum. It watches DHIP `Transfer` events through a local Geth node, rebuilds holder balances and rankings, and pushes JSON to WordPress so [logicencoder.com/0xdnx-dhip-v2-richlist/](https://logicencoder.com/0xdnx-dhip-v2-richlist/) never scrapes Etherscan on every page view.
 
 Pool share shifts whenever large wallets deposit or exit — a static export is stale within hours. This worker tails new blocks after an optional lookback catch-up, persists history in SQLite, and hands ranked data to the plugin that powers the public table, stats band, and live refresh loop.

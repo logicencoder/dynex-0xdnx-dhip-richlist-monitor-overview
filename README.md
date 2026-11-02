@@ -1,6 +1,6 @@
 # 0xDNX DHIP Richlist Monitor — overview
 
-Public description of the **private Python monitor** that indexes Wrapped Dynex (0xDNX) in **DHIP v2** on Ethereum and feeds the LogicEncoder richlist. Private code: [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor).
+Public description of the **private Python monitor** that indexes Wrapped Dynex (0xDNX) in **DHIP v2** on Ethereum and feeds the Logic Encoder richlist. Private code: [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor).
 
 **Live site (WordPress):** https://logicencoder.com/0xdnx-dhip-v2-richlist/  
 **Plugin overview:** [dynex-0xdnx-dhip-richlist-plugin-overview](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-plugin-overview)
@@ -48,7 +48,7 @@ WordPress plugin (private PHP)
 ## Production
 
 **What:** Runs on SOL under `/home/sol/lojzo/0xdnxdhip_richlist_monitor/` (see private `ARCHITECTURE.md`).  
-**Why:** Co-locate with other LogicEncoder chain tools and stable outbound POST to Hostinger.  
+**Why:** Co-locate with other Logic Encoder chain tools and stable outbound POST to Hostinger.  
 **Who:** Operator maintains RPC keys and monitor uptime.
 
 ## Related documentation
@@ -59,4 +59,4 @@ See [REPOS.md](REPOS.md).
 
 ## Licensing
 
-© LogicEncoder.
+© Logic Encoder.

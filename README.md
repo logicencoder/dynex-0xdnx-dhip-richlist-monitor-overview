@@ -17,9 +17,9 @@ It supplies the public [DHIP v2 richlist](https://logicencoder.com/0xdnx-dhip-v2
 
 ## Follow the changing pool
 
-The monitor follows Wrapped Dynex holdings in the DHIP v2 pool and distinguishes deposits, withdrawals and transfers between participants. That gives a movement its pool context instead of treating every transaction as the same kind of activity.
+The monitor follows Wrapped Dynex holdings in the DHIP v2 pool and classifies every movement as a deposit, a withdrawal or a transfer between participants, so a movement keeps its pool context instead of being treated as generic activity. It runs in two modes. A **look-back catch-up** scans a chosen number of recent blocks in chunks, which rebuilds the picture after a pause. A **live tail** then follows new blocks and keeps the picture current.
 
-A useful review begins with a recent event, then checks the affected holder's balance and place in the distribution. The information supports investigation without assigning an unverified motive to the participant.
+A useful review begins with a recent event, then checks the affected holder's balance and place in the distribution. The information supports investigation without assigning a motive to the participant.
 
 ## Compare balances, ranks and shares
 
@@ -29,11 +29,9 @@ The ranking can be reviewed as a whole or used to follow a specific address. Cha
 
 ## Return to earlier observations
 
-**What:** Runs on SOL under `/home/sol/lojzo/0xdnxdhip_richlist_monitor/` (see private `ARCHITECTURE.md`).  
-**Why:** Co-locate with other Logic Encoder chain tools and stable outbound POST to Hostinger.  
-**Who:** Operator maintains RPC keys and monitor uptime.
+The monitor stores every processed holder balance and event in a local history, so the picture is not limited to the present moment. Compare the distribution across selected observations, revisit a period of activity, or inspect how the position and share of a tracked holder changed over time. Recent deposits and withdrawals provide another route into the same history: start from the movement, then follow the holder it affected.
 
-Compare the distribution across selected observations, revisit a period of activity or inspect how the position of a tracked holder changed. Recent deposits and withdrawals provide another route into that history.
+Because the history is rebuilt from chain logs, it can be extended backwards at any time by running a catch-up over an earlier block range.
 
 ## Keep public pages informed
 
@@ -41,4 +39,12 @@ The operator can publish the tracked information to more than one configured Wor
 
 The companion WordPress product provides the visitor-facing table, summaries and transaction browsing. Its purpose is to make the holder information accessible within the website; the monitor supplies the chain observations behind that experience.
 
-© Logic Encoder.
+## Scope and limits
+
+The holder picture is rebuilt from public Ethereum logs of the DHIP v2 contract, with balances in the token's nine-decimal units and shares expressed against the total supply of the programme. After every batch the totals are reconciled, and an optional on-chain check compares the aggregate with the contract. Numbers are as accurate as the chain data and the contract's events; the monitor reports observations, not intentions, and does not label holders.
+
+---
+
+Private code: [dynex-0xdnx-dhip-richlist-monitor](https://github.com/logicencoder/dynex-0xdnx-dhip-richlist-monitor)
+
+Logic Encoder · [GitHub](https://github.com/logicencoder) · [Contact](https://logicencoder.com/contact/)
